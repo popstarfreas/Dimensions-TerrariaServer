@@ -13,57 +13,63 @@ using Newtonsoft.Json;
 
 namespace Dimensions
 {
-	[ApiVersion(1,23)]
-	public class Dimensions : TerrariaPlugin
+    [ApiVersion(1, 23)]
+    public class Dimensions : TerrariaPlugin
     {
         public static string[] RealIPs = new string[256];
-		public Timer OnSecondUpdate;
+        public Timer OnSecondUpdate;
         public static Config Config = new Config();
 
         public override string Author
-		{
-			get
-			{
-				return "popstarfreas";
-			}
-		}
+        {
+            get
+            {
+                return "popstarfreas";
+            }
+        }
 
-		public override string Description
-		{
-			get
-			{
-				return "Adds more Dimensions to Terraria Travel";
-			}
-		}
+        public override string Description
+        {
+            get
+            {
+                return "Adds more Dimensions to Terraria Travel";
+            }
+        }
 
-		public override string Name
-		{
-			get
-			{
-				return "Dimensions";
-			}
-		}
+        public override string Name
+        {
+            get
+            {
+                return "Dimensions";
+            }
+        }
 
-		public override Version Version
-		{
-			get
-			{
-				return new Version(1, 2, 0);
-			}
-		}
+        public override Version Version
+        {
+            get
+            {
+                return new Version(1, 2, 0);
+            }
+        }
 
-		public Dimensions(Main game) : base(game)
+        public Dimensions(Main game) : base(game)
         {
             Order = 1;
         }
-		
-		public override void Initialize()
-		{
-			ServerApi.Hooks.NetGetData.Register(this, GetData);
+
+        public override void Initialize()
+        {
+            ServerApi.Hooks.NetGetData.Register(this, GetData);
             TShock.RestApi.Register(new SecureRestCommand("/d/ban", BanUser, "dimensions.rest.ban"));
             //TShock.RestApi.Register(new SecureRestCommand("/d/tempban/{username}/{reason}", TempBanUser, "dimensions.rest.tempban"));
             //TShock.RestApi.Register(new SecureRestCommand("/d/offlinetempban/{username}/{reason}", OfflineTempBanUser, "dimensions.rest.tempban"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("dimensions.reload", Reload, "dimreload"));
+			TShockAPI.Commands.ChatCommands.Add(new Command("dimensions.reload", Reload, "dimreload"));
+			TShockAPI.Commands.ChatCommands.RemoveAll (p => p.Name == "ban");
+			TShockAPI.Commands.ChatCommands.RemoveAll (p => p.Name == "userinfo");
+			TShockAPI.Commands.ChatCommands.RemoveAll (p => p.Name == "ui");
+			TShockAPI.Commands.ChatCommands.Add(new Command(TShockAPI.Permissions.ban, DimensionsBan, "ban"));
+			TShockAPI.Commands.ChatCommands.Add(new Command(TShockAPI.Permissions.ban, DimensionsUserInfo, "ui"));
+			TShockAPI.Commands.ChatCommands.Add(new Command(TShockAPI.Permissions.ban, DimensionsUserInfo, "userinfo"));
             TShockAPI.Hooks.PlayerHooks.PlayerPostLogin += OnPlayerLogin;
             GetDataHandlers.InitGetDataHandler();
 
@@ -81,8 +87,13 @@ namespace Dimensions
                 KnownIps = JsonConvert.DeserializeObject<List<String>>(args.Player.User.KnownIps);
             }
 
-            if (RealIPs[args.Player.Index] != "") {
-                KnownIps.Where(ip => ip == Config.RoutingIP).ToList().ForEach(p => p = RealIPs[args.Player.Index]);
+            if (RealIPs[args.Player.Index] != "")
+            {
+				for (int i = 0; i < KnownIps.Count; i++) {
+					if (KnownIps[i] == Config.RoutingIP) {
+						KnownIps[i] = RealIPs [args.Player.Index];
+					}
+				}
                 args.Player.User.KnownIps = JsonConvert.SerializeObject(KnownIps, Formatting.Indented);
                 TShock.Users.UpdateLogin(args.Player.User);
             }
@@ -91,7 +102,6 @@ namespace Dimensions
         private object BanUser(RestRequestArgs args)
         {
             var username = args.Parameters["username"];
-            Console.WriteLine("Username: " + username);
             var reason = args.Parameters["reason"];
             var player = TShock.Players.FirstOrDefault(p => p != null && p.Name == username);
             RestObject ret;
@@ -101,9 +111,11 @@ namespace Dimensions
                 {
                     {"success", false}
                 };
-            } else {
+            }
+            else
+            {
                 bool success = TShock.Bans.AddBan(RealIPs[player.Index], player.User != null ? player.User.Name : player.Name, player.UUID, reason);
-                player.Disconnect("Banned: "+reason);
+                player.Disconnect("Banned: " + reason);
                 ret = new RestObject()
                 {
                     {"success", success},
@@ -112,8 +124,16 @@ namespace Dimensions
             return ret;
         }
 
+		void DimensionsBan(CommandArgs e) {
+			Commands.Ban (e.Player, e.Parameters, e.Silent);
+		}
+
+		void DimensionsUserInfo(CommandArgs e) {
+			Commands.UserInfo (e.Player, e.Parameters, e.Silent);
+		}
+
         void Reload(CommandArgs e)
-        {
+        {	
             string path = Path.Combine(TShock.SavePath, "Dimensions.json");
             if (!File.Exists(path))
                 Config.WriteTemplates(path);
@@ -122,44 +142,45 @@ namespace Dimensions
         }
 
         protected override void Dispose(bool disposing)
-		{
-			if (disposing) {
+        {
+            if (disposing)
+            {
                 ServerApi.Hooks.NetGetData.Deregister(this, GetData);
                 TShockAPI.Hooks.PlayerHooks.PlayerPostLogin -= OnPlayerLogin;
-                base.Dispose (disposing);
-			}
+                base.Dispose(disposing);
+            }
         }
 
-		private void GetData(GetDataEventArgs args)
-		{
-			var type = args.MsgID;
-			var player = TShock.Players[args.Msg.whoAmI];
+        private void GetData(GetDataEventArgs args)
+        {
+            var type = args.MsgID;
+            var player = TShock.Players[args.Msg.whoAmI];
 
-			if (player == null)
-			{
-				args.Handled = true;
-				return;
-			}
+            if (player == null)
+            {
+                args.Handled = true;
+                return;
+            }
 
-			if (!player.ConnectionAlive)
-			{
-				args.Handled = true;
-				return;
-			}
+            if (!player.ConnectionAlive)
+            {
+                args.Handled = true;
+                return;
+            }
 
-			using (var data = new MemoryStream(args.Msg.readBuffer, args.Index, args.Length))
-			{
-				try
-				{
-					if (GetDataHandlers.HandlerGetData(type, player, data))
-						args.Handled = true;
-				}
-				catch (Exception ex)
-				{
-					TShock.Log.ConsoleError(ex.ToString());
-				}
-			}
-		}
-	}
+            using (var data = new MemoryStream(args.Msg.readBuffer, args.Index, args.Length))
+            {
+                try
+                {
+                    if (GetDataHandlers.HandlerGetData(type, player, data))
+                        args.Handled = true;
+                }
+                catch (Exception ex)
+                {
+                    TShock.Log.ConsoleError(ex.ToString());
+                }
+            }
+        }
+    }
 }
 
