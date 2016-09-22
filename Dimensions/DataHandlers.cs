@@ -62,6 +62,8 @@ namespace Dimensions
                 case 0:
                     string remoteAddress = joinInfo;
                     Dimensions.RealIPs[args.Player.Index] = remoteAddress;
+                    typeof(TSPlayer).GetField("CacheIP", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                                    .SetValue(args.Player, remoteAddress);
                     var ban = TShock.Bans.GetBanByIp(remoteAddress);
                     if (ban != null)
                     {

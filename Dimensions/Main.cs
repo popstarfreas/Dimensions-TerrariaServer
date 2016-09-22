@@ -13,12 +13,10 @@ using Newtonsoft.Json;
 
 namespace Dimensions
 {
-    [ApiVersion(1, 23)]
+    [ApiVersion(1, 24)]
     public class Dimensions : TerrariaPlugin
     {
         public static string[] RealIPs = new string[256];
-        public Timer OnSecondUpdate;
-        public static Config Config = new Config();
 
         public override string Author
         {
@@ -48,7 +46,7 @@ namespace Dimensions
         {
             get
             {
-                return new Version(1, 2, 0);
+                return new Version(1, 3, 0);
             }
         }
 
@@ -60,85 +58,7 @@ namespace Dimensions
         public override void Initialize()
         {
             ServerApi.Hooks.NetGetData.Register(this, GetData);
-            TShock.RestApi.Register(new SecureRestCommand("/d/ban", BanUser, "dimensions.rest.ban"));
-            //TShock.RestApi.Register(new SecureRestCommand("/d/tempban/{username}/{reason}", TempBanUser, "dimensions.rest.tempban"));
-            //TShock.RestApi.Register(new SecureRestCommand("/d/offlinetempban/{username}/{reason}", OfflineTempBanUser, "dimensions.rest.tempban"));
-			TShockAPI.Commands.ChatCommands.Add(new Command("dimensions.reload", Reload, "dimreload"));
-			TShockAPI.Commands.ChatCommands.RemoveAll (p => p.Name == "ban");
-			TShockAPI.Commands.ChatCommands.RemoveAll (p => p.Name == "userinfo");
-			TShockAPI.Commands.ChatCommands.RemoveAll (p => p.Name == "ui");
-			TShockAPI.Commands.ChatCommands.Add(new Command(TShockAPI.Permissions.ban, DimensionsBan, "ban"));
-			TShockAPI.Commands.ChatCommands.Add(new Command(TShockAPI.Permissions.ban, DimensionsUserInfo, "ui"));
-			TShockAPI.Commands.ChatCommands.Add(new Command(TShockAPI.Permissions.ban, DimensionsUserInfo, "userinfo"));
-            TShockAPI.Hooks.PlayerHooks.PlayerPostLogin += OnPlayerLogin;
             GetDataHandlers.InitGetDataHandler();
-
-            string path = Path.Combine(TShock.SavePath, "Dimensions.json");
-            if (!File.Exists(path))
-                Config.WriteTemplates(path);
-            Config = Config.Read(path);
-        }
-
-        private void OnPlayerLogin(PlayerPostLoginEventArgs args)
-        {
-            List<String> KnownIps = new List<string>();
-            if (!string.IsNullOrWhiteSpace(args.Player.User.KnownIps))
-            {
-                KnownIps = JsonConvert.DeserializeObject<List<String>>(args.Player.User.KnownIps);
-            }
-
-            if (RealIPs[args.Player.Index] != "")
-            {
-				for (int i = 0; i < KnownIps.Count; i++) {
-					if (KnownIps[i] == Config.RoutingIP) {
-						KnownIps[i] = RealIPs [args.Player.Index];
-					}
-				}
-                args.Player.User.KnownIps = JsonConvert.SerializeObject(KnownIps, Formatting.Indented);
-                TShock.Users.UpdateLogin(args.Player.User);
-            }
-        }
-
-        private object BanUser(RestRequestArgs args)
-        {
-            var username = args.Parameters["username"];
-            var reason = args.Parameters["reason"];
-            var player = TShock.Players.FirstOrDefault(p => p != null && p.Name == username);
-            RestObject ret;
-            if (player == null)
-            {
-                ret = new RestObject()
-                {
-                    {"success", false}
-                };
-            }
-            else
-            {
-                bool success = TShock.Bans.AddBan(RealIPs[player.Index], player.User != null ? player.User.Name : player.Name, player.UUID, reason);
-                player.Disconnect("Banned: " + reason);
-                ret = new RestObject()
-                {
-                    {"success", success},
-                };
-            }
-            return ret;
-        }
-
-		void DimensionsBan(CommandArgs e) {
-			Commands.Ban (e.Player, e.Parameters, e.Silent);
-		}
-
-		void DimensionsUserInfo(CommandArgs e) {
-			Commands.UserInfo (e.Player, e.Parameters, e.Silent);
-		}
-
-        void Reload(CommandArgs e)
-        {	
-            string path = Path.Combine(TShock.SavePath, "Dimensions.json");
-            if (!File.Exists(path))
-                Config.WriteTemplates(path);
-            Config = Config.Read(path);
-            e.Player.SendSuccessMessage("Reloaded Dimensions config.");
         }
 
         protected override void Dispose(bool disposing)
@@ -146,7 +66,6 @@ namespace Dimensions
             if (disposing)
             {
                 ServerApi.Hooks.NetGetData.Deregister(this, GetData);
-                TShockAPI.Hooks.PlayerHooks.PlayerPostLogin -= OnPlayerLogin;
                 base.Dispose(disposing);
             }
         }
