@@ -10,6 +10,7 @@ using TShockAPI;
 using TShockAPI.Hooks;
 using Rests;
 using Newtonsoft.Json;
+using MaxMind;
 
 namespace Dimensions
 {
@@ -17,6 +18,8 @@ namespace Dimensions
     public class Dimensions : TerrariaPlugin
     {
         public static string[] RealIPs = new string[256];
+        public static GeoIPCountry Geo;
+        public static Config Config = new Config();
 
         public override string Author
         {
@@ -46,7 +49,7 @@ namespace Dimensions
         {
             get
             {
-                return new Version(1, 3, 0);
+                return new Version(1, 4, 0);
             }
         }
 
@@ -59,6 +62,14 @@ namespace Dimensions
         {
             ServerApi.Hooks.NetGetData.Register(this, GetData);
             GetDataHandlers.InitGetDataHandler();
+            var geoippath = "Dimensions-GeoIP.dat";
+            string path = Path.Combine(TShock.SavePath, "Dimensions.json");
+            if (!File.Exists(path))
+                Config.WriteTemplates(path);
+            Config = Config.Read(path);
+
+            if (Config.EnableGeoIP && File.Exists(geoippath))
+                Geo = new GeoIPCountry(geoippath);
         }
 
         protected override void Dispose(bool disposing)
@@ -68,6 +79,15 @@ namespace Dimensions
                 ServerApi.Hooks.NetGetData.Deregister(this, GetData);
                 base.Dispose(disposing);
             }
+        }
+
+        private void Reload(CommandArgs e)
+        {
+            string path = Path.Combine(TShock.SavePath, "Dimensions.json");
+            if (!File.Exists(path))
+                Config.WriteTemplates(path);
+            Config = Config.Read(path);
+            e.Player.SendSuccessMessage("Reloaded Dimensions config.");
         }
 
         private void GetData(GetDataEventArgs args)

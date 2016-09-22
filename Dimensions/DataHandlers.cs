@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Streams;
 using System.Collections.Generic;
 using TShockAPI;
+using MaxMind;
 
 namespace Dimensions
 {
@@ -64,10 +65,19 @@ namespace Dimensions
                     Dimensions.RealIPs[args.Player.Index] = remoteAddress;
                     typeof(TSPlayer).GetField("CacheIP", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                                     .SetValue(args.Player, remoteAddress);
-                    var ban = TShock.Bans.GetBanByIp(remoteAddress);
-                    if (ban != null)
+
+                    if (Dimensions.Geo != null)
                     {
-                        args.Player.Disconnect("Banned: " + ban.Reason);
+                        var code = Dimensions.Geo.TryGetCountryCode(System.Net.IPAddress.Parse(remoteAddress));
+                        args.Player.Country = code == null ? "N/A" : GeoIPCountry.GetCountryNameByCode(code);
+                        if (code == "A1")
+                        {
+                            if (TShock.Config.KickProxyUsers)
+                            {
+                                TShock.Utils.ForceKick(args.Player, "Proxies are not allowed.", true, false);
+                                return false;
+                            }
+                        }
                     }
                     break;
                 // case 1 is handled by GameModes
