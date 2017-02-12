@@ -14,12 +14,12 @@ using MaxMind;
 
 namespace Dimensions
 {
-    [ApiVersion(1, 24)]
+    [ApiVersion(2, 0)]
     public class Dimensions : TerrariaPlugin
     {
-        public static string[] RealIPs = new string[256];
-        public static GeoIPCountry Geo;
-        public static Config Config = new Config();
+        public GeoIPCountry Geo;
+        public Config Config = new Config();
+        public GetDataHandlers GetDataHandlers;
 
         public override string Author
         {
@@ -49,7 +49,7 @@ namespace Dimensions
         {
             get
             {
-                return new Version(1, 4, 0);
+                return new Version(1, 5, 0);
             }
         }
 
@@ -61,7 +61,7 @@ namespace Dimensions
         public override void Initialize()
         {
             ServerApi.Hooks.NetGetData.Register(this, GetData);
-            GetDataHandlers.InitGetDataHandler();
+            GetDataHandlers = new GetDataHandlers(this);
             var geoippath = "Dimensions-GeoIP.dat";
             string path = Path.Combine(TShock.SavePath, "Dimensions.json");
             if (!File.Exists(path))

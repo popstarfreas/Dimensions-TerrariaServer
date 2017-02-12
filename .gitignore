@@ -61,3 +61,4 @@ postbuild.bat
 ##################
 *.dotCover
 _ReSharper.*
+/.vs/config
