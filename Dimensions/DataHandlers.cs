@@ -7,58 +7,58 @@ using MaxMind;
 
 namespace Dimensions
 {
-	internal delegate bool GetDataHandlerDelegate(GetDataHandlerArgs args);
+    internal delegate bool GetDataHandlerDelegate(GetDataHandlerArgs args);
 
-	internal class GetDataHandlerArgs : EventArgs
-	{
-		public TSPlayer Player { get; private set; }
-		public MemoryStream Data { get; private set; }
+    internal class GetDataHandlerArgs : EventArgs
+    {
+        public TSPlayer Player { get; private set; }
+        public MemoryStream Data { get; private set; }
 
-		public GetDataHandlerArgs(TSPlayer player, MemoryStream data)
-		{
-			Player = player;
-			Data = data;
-		}
-	}
+        public GetDataHandlerArgs(TSPlayer player, MemoryStream data)
+        {
+            Player = player;
+            Data = data;
+        }
+    }
 
-	public class GetDataHandlers
+    public class GetDataHandlers
     {
         private static Dictionary<PacketTypes, GetDataHandlerDelegate> _getDataHandlerDelegates;
         private Dimensions Dimensions;
 
-		public GetDataHandlers(Dimensions Dimensions)
-		{
+        public GetDataHandlers(Dimensions Dimensions)
+        {
             this.Dimensions = Dimensions;
 
-			_getDataHandlerDelegates = new Dictionary<PacketTypes, GetDataHandlerDelegate>
-			{
-				{PacketTypes.Placeholder, HandleDimensionsMessage},
-			};
-		}
+            _getDataHandlerDelegates = new Dictionary<PacketTypes, GetDataHandlerDelegate>
+            {
+                {PacketTypes.Placeholder, HandleDimensionsMessage},
+            };
+        }
 
-		public bool HandlerGetData(PacketTypes type, TSPlayer player, MemoryStream data)
-		{
-			GetDataHandlerDelegate handler;
-			if (_getDataHandlerDelegates.TryGetValue(type, out handler))
-			{
-				try
-				{
-					return handler(new GetDataHandlerArgs(player, data));
-				}
-				catch (Exception ex)
-				{
-					TShock.Log.Error(ex.ToString());
-				}
-			}
-			return false;
-		}
+        public bool HandlerGetData(PacketTypes type, TSPlayer player, MemoryStream data)
+        {
+            GetDataHandlerDelegate handler;
+            if (_getDataHandlerDelegates.TryGetValue(type, out handler))
+            {
+                try
+                {
+                    return handler(new GetDataHandlerArgs(player, data));
+                }
+                catch (Exception ex)
+                {
+                    TShock.Log.Error(ex.ToString());
+                }
+            }
+            return false;
+        }
 
-		private bool HandleDimensionsMessage(GetDataHandlerArgs args)
-		{
-			if (args.Player == null) return false;
-			var index = args.Player.Index;
+        private bool HandleDimensionsMessage(GetDataHandlerArgs args)
+        {
+            if (args.Player == null) return false;
+            var index = args.Player.Index;
             var joinType = args.Data.ReadInt16();
-			var joinInfo = args.Data.ReadString();
+            var joinInfo = args.Data.ReadString();
             var handled = false;
 
             switch (joinType)
@@ -66,10 +66,10 @@ namespace Dimensions
                 case 0:
                     handled = HandleIpInformation(joinInfo, args.Player);
                     break;
-                // case 1 is handled by GameModes
+                    // case 1 is handled by GameModes
             }
             return handled;
-		}
+        }
 
         private bool HandleIpInformation(string joinInfo, TSPlayer player)
         {
@@ -94,5 +94,5 @@ namespace Dimensions
 
             return true;
         }
-	}
+    }
 }
