@@ -53,6 +53,11 @@ namespace Dimensions
             return false;
         }
 
+        /// <summary>
+        /// Handles a Dimensions message (such as real IP of a new client)
+        /// </summary>
+        /// <param name="args">The get data handler arguments</param>
+        /// <returns>Whether this packet was handled</returns>
         private bool HandleDimensionsMessage(GetDataHandlerArgs args)
         {
             if (args.Player == null) return false;
@@ -71,9 +76,14 @@ namespace Dimensions
             return handled;
         }
 
-        private bool HandleIpInformation(string joinInfo, TSPlayer player)
+        /// <summary>
+        /// Handles ip information on a new client
+        /// </summary>
+        /// <param name="remoteAddress">The IP address of the user</param>
+        /// <param name="player">The player bound to the client with this IP</param>
+        /// <returns>Whether or not the update was made successfully</returns>
+        private bool HandleIpInformation(string remoteAddress, TSPlayer player)
         {
-            string remoteAddress = joinInfo;
             typeof(TSPlayer).GetField("CacheIP", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                             .SetValue(player, remoteAddress);
 

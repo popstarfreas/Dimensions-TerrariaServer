@@ -58,6 +58,9 @@ namespace Dimensions
             Order = 1;
         }
 
+        /// <summary>
+        /// Initializese the get data handlers, loads the config and sets up the GeoIP
+        /// </summary>
         public override void Initialize()
         {
             ServerApi.Hooks.NetGetData.Register(this, GetData);
@@ -81,6 +84,10 @@ namespace Dimensions
             }
         }
 
+        /// <summary>
+        /// Reloads the config
+        /// </summary>
+        /// <param name="e">The command arguments</param>
         private void Reload(CommandArgs e)
         {
             string path = Path.Combine(TShock.SavePath, "Dimensions.json");
@@ -90,6 +97,10 @@ namespace Dimensions
             e.Player.SendSuccessMessage("Reloaded Dimensions config.");
         }
 
+        /// <summary>
+        /// Passes on packets to the data handlers
+        /// </summary>
+        /// <param name="args">The Get Data Event arguments</param>
         private void GetData(GetDataEventArgs args)
         {
             var type = args.MsgID;
