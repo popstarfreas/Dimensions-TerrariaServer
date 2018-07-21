@@ -9,12 +9,11 @@ using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.Hooks;
 using Rests;
-using Newtonsoft.Json;
 using MaxMind;
 
 namespace Dimensions
 {
-    [ApiVersion(2, 0)]
+    [ApiVersion(2, 1)]
     public class Dimensions : TerrariaPlugin
     {
         public GeoIPCountry Geo;
