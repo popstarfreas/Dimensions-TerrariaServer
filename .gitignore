@@ -1,4 +1,4 @@
-# Sublime Text #
+# Sublie Text #
 *.sublime-*
 
 # Compiled source #
@@ -13,6 +13,8 @@
 */obj/*
 bin/*
 obj/*
+
+!Dimensions/Refs/*
 
 # Packages #
 ############
