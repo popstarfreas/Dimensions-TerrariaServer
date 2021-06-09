@@ -94,7 +94,7 @@ namespace Dimensions
                 player.Country = code == null ? "N/A" : GeoIPCountry.GetCountryNameByCode(code);
                 if (code == "A1")
                 {
-                    if (TShock.Config.KickProxyUsers)
+                    if (TShock.Config.Settings.KickProxyUsers)
                     {
                         player.Kick("Proxies are not allowed.", true, true);
                         return false;
