@@ -15,7 +15,7 @@
   <!-- NuGet References -->
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="OTAPI.Upcoming" Version="3.1.8-alpha" />
+    <PackageReference Include="OTAPI.Upcoming" Version="3.1.9-alpha" />
   </ItemGroup>
 
   <!-- Local References -->
