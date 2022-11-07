@@ -1,14 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Timers;
-using System.Linq;
 using Terraria;
 using TerrariaApi.Server;
 using TShockAPI;
-using TShockAPI.Hooks;
-using Rests;
 using MaxMind;
 
 namespace Dimensions
@@ -22,34 +16,22 @@ namespace Dimensions
 
         public override string Author
         {
-            get
-            {
-                return "popstarfreas";
-            }
+            get { return "popstarfreas"; }
         }
 
         public override string Description
         {
-            get
-            {
-                return "Adds more Dimensions to Terraria Travel";
-            }
+            get { return "Adds more Dimensions to Terraria Travel"; }
         }
 
         public override string Name
         {
-            get
-            {
-                return "Dimensions";
-            }
+            get { return "Dimensions"; }
         }
 
         public override Version Version
         {
-            get
-            {
-                return new Version(1, 5, 0);
-            }
+            get { return new Version(1, 5, 0); }
         }
 
         public Dimensions(Main game) : base(game)
@@ -64,7 +46,7 @@ namespace Dimensions
         {
             ServerApi.Hooks.NetGetData.Register(this, GetData);
             GetDataHandlers = new GetDataHandlers(this);
-            var geoippath = "Dimensions-GeoIP.dat";
+            var geoippath = "GeoIP.dat";
             string path = Path.Combine(TShock.SavePath, "Dimensions.json");
             if (!File.Exists(path))
                 Config.WriteTemplates(path);
@@ -132,4 +114,3 @@ namespace Dimensions
         }
     }
 }
-

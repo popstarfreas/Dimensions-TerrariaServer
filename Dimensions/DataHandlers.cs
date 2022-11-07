@@ -32,7 +32,7 @@ namespace Dimensions
 
             _getDataHandlerDelegates = new Dictionary<PacketTypes, GetDataHandlerDelegate>
             {
-                {PacketTypes.Placeholder, HandleDimensionsMessage},
+                { PacketTypes.Placeholder, HandleDimensionsMessage },
             };
         }
 
@@ -60,7 +60,8 @@ namespace Dimensions
         /// <returns>Whether this packet was handled</returns>
         private bool HandleDimensionsMessage(GetDataHandlerArgs args)
         {
-            if (args.Player == null) return false;
+            if (args.Player == null)
+                return false;
             var index = args.Player.Index;
             var joinType = args.Data.ReadInt16();
             var joinInfo = args.Data.ReadString();
@@ -71,7 +72,7 @@ namespace Dimensions
                 case 0:
                     handled = HandleIpInformation(joinInfo, args.Player);
                     break;
-                    // case 1 is handled by GameModes
+                // case 1 is handled by GameModes
             }
             return handled;
         }
@@ -84,17 +85,24 @@ namespace Dimensions
         /// <returns>Whether or not the update was made successfully</returns>
         private bool HandleIpInformation(string remoteAddress, TSPlayer player)
         {
-            typeof(TSPlayer).GetField("CacheIP", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                            .SetValue(player, remoteAddress);
+            typeof(TSPlayer)
+                .GetField(
+                    "CacheIP",
+                    System.Reflection.BindingFlags.Instance
+                        | System.Reflection.BindingFlags.NonPublic
+                )
+                .SetValue(player, remoteAddress);
 
             // This needs to be handled as Geo check for proxy in TShock runs before the IP is updated to the correct one
             if (Dimensions.Geo != null)
             {
-                var code = Dimensions.Geo.TryGetCountryCode(System.Net.IPAddress.Parse(remoteAddress));
+                var code = Dimensions.Geo.TryGetCountryCode(
+                    System.Net.IPAddress.Parse(remoteAddress)
+                );
                 player.Country = code == null ? "N/A" : GeoIPCountry.GetCountryNameByCode(code);
                 if (code == "A1")
                 {
-                    if (TShock.Config.KickProxyUsers)
+                    if (TShock.Config.Settings.KickProxyUsers)
                     {
                         player.Kick("Proxies are not allowed.", true, true);
                         return false;
