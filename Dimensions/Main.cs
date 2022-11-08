@@ -31,7 +31,7 @@ namespace Dimensions
 
         public override Version Version
         {
-            get { return new Version(1, 5, 0); }
+            get { return new Version(2, 0, 0); }
         }
 
         public Dimensions(Main game) : base(game)
