@@ -1,0 +1,64 @@
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the microservice branch
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master, dev ]
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # Disable .NET CLI telemetry
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+  # Suppress ASP.NET development certificate generation on first call of .NET CLI
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: 'false'
+
+  DOTNET_NOLOGO: 'true'
+
+  # Suppress costly first time experiences
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: .NET Restore
+        uses: ./.github/actions/proj-restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Debug /warnaserror
+
+#  dotnet-format:
+#    # The type of runner that the job will run on
+#    runs-on: ubuntu-22.04
+#    timeout-minutes: 10
+#
+#    # Cuts CI times significantly if build code is invalid
+#    needs: build
+#
+#    # Steps represent a sequence of tasks that will be executed as part of the job
+#    steps:
+#      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+#      - name: Checkout repo
+#        uses: actions/checkout@v3
+#
+#      - name: .NET Restore
+#        uses: ./.github/actions/proj-restore
+#
+#      - name: Run dotnet-format
+#        run: dotnet format --severity info --verify-no-changes --no-restore
