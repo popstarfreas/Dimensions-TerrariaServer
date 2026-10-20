@@ -57,17 +57,28 @@ class GitHub:
             raise ReleaseError(f"GitHub lookup {path} failed: {error.reason}.") from error
 
     def release(self, tag):
-        # Listing with a write token includes drafts, including drafts without tags.
-        # The release-by-tag endpoint is documented for published releases only.
-        page = 1
-        while True:
-            releases = self.get(f"releases?per_page=100&page={page}")
-            for release in releases:
-                if release["tag_name"] == tag:
-                    return release
-            if len(releases) < 100:
-                return None
-            page += 1
+        # Drafts can have an internal REST tag_name of "untagged-...". GraphQL
+        # resolves their pending tag, as GitHub CLI's draft lookup does.
+        owner, name = self.repo.split("/", 1)
+        query = """query($owner: String!, $name: String!, $tagName: String!) {
+          repository(owner: $owner, name: $name) {
+            release(tagName: $tagName) { databaseId }
+          }
+        }"""
+        result = json.loads(subprocess.check_output([
+            "gh", "api", "graphql", "-f", f"query={query}",
+            "-f", f"owner={owner}", "-f", f"name={name}", "-f", f"tagName={tag}",
+        ], text=True))
+        if result.get("errors"):
+            raise ReleaseError("GitHub release lookup failed: " + "; ".join(
+                error["message"] for error in result["errors"]))
+        repository = (result.get("data") or {}).get("repository")
+        if repository is None:
+            raise ReleaseError("GitHub release lookup could not access the repository.")
+        found = repository["release"]
+        if found is None:
+            return None
+        return self.get(f"releases/{found['databaseId']}")
 
     def tag_commit(self, tag):
         ref = self.get(f"git/ref/tags/{tag}", missing_ok=True)
@@ -162,7 +173,7 @@ def publish(github, state):
     release = github.release(tag)
     if release is None or not release["draft"] or not has_dll(release):
         raise ReleaseError(f"Draft {tag} has no completed DLL upload; it has not been published.")
-    gh("release", "edit", tag, "--draft=false")
+    gh("release", "edit", tag, "--tag", tag, "--draft=false")
     print(f"Published {tag} from {state['commit']}.")
 
 

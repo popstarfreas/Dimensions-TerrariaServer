@@ -175,6 +175,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn("Terraria 1.4.5.8", github.notes)
         self.assertIn("TShock 6.2.1", github.notes)
         self.assertIn("ServerPlugins/", github.notes)
+        self.assertEqual(github.commands[-1], ("release", "edit", TAG, "--tag", TAG, "--draft=false"))
         self.assertFalse(github.existing["draft"])
         self.assertEqual(github.commit, CURRENT)
 
@@ -248,6 +249,38 @@ class GitHubTests(unittest.TestCase):
         self.addCleanup(env.stop)
         self.github = release.GitHub()
 
+    def test_pending_tag_finds_draft_with_internal_untagged_name(self):
+        pending = {"data": {"repository": {"release": {"databaseId": 123}}}}
+        existing = {**draft(), "tag_name": "untagged-db2005b3c499a2591cf95"}
+        def response(path):
+            return [existing] if path.startswith("releases?") else existing
+        with patch.object(release.subprocess, "check_output", return_value=json.dumps(pending)) as command:
+            with patch.object(self.github, "get", side_effect=response) as get:
+                self.assertEqual(self.github.release(TAG), existing)
+        get.assert_called_once_with("releases/123")
+        args = command.call_args.args[0]
+        self.assertEqual(args[:3], ["gh", "api", "graphql"])
+        self.assertIn(f"tagName={TAG}", args)
+
+    def test_pending_draft_retry_preserves_original_commit(self):
+        pending = {"data": {"repository": {"release": {"databaseId": 123}}}}
+        existing = {**draft(), "tag_name": "untagged-db2005b3c499a2591cf95"}
+        def get(path, missing_ok=False):
+            if path.startswith("releases?"):
+                return [existing]
+            if path == "releases/123":
+                return existing
+            self.assertEqual(path, f"git/ref/tags/{TAG}")
+            self.assertTrue(missing_ok)
+            return None
+        with patch.object(release.subprocess, "check_output", return_value=json.dumps(pending)):
+            with patch.object(self.github, "get", side_effect=get):
+                state, found = release.release_state(self.github, "1.5.1", CURRENT)
+        self.assertEqual(found, existing)
+        self.assertEqual(state["tag"], TAG)
+        self.assertEqual(state["commit"], ORIGINAL)
+        self.assertTrue(state["publish"])
+
     def test_only_explicitly_allowed_404_is_treated_as_missing(self):
         for code in [401, 403, 404, 429, 500]:
             with self.subTest(code=code):
@@ -266,12 +299,34 @@ class GitHubTests(unittest.TestCase):
             with self.assertRaisesRegex(release.ReleaseError, "offline"):
                 self.github.get("git/ref/tags/absent", missing_ok=True)
 
-    def test_release_lookup_finds_drafts_across_pages(self):
-        first_page = [{"tag_name": f"v0.0.{number}"} for number in range(100)]
-        with patch.object(self.github, "get", side_effect=[first_page, [draft()]]) as get:
-            self.assertTrue(self.github.release(TAG)["draft"])
-        self.assertEqual(get.call_count, 2)
-        self.assertEqual(get.call_args.args[0], "releases?per_page=100&page=2")
+    def test_release_lookup_finds_published_release_by_id(self):
+        result = {"data": {"repository": {"release": {"databaseId": 123}}}}
+        existing = {**draft(assets=[DLL]), "draft": False}
+        with patch.object(release.subprocess, "check_output", return_value=json.dumps(result)):
+            with patch.object(self.github, "get", return_value=existing) as get:
+                self.assertEqual(self.github.release(TAG), existing)
+        get.assert_called_once_with("releases/123")
+
+    def test_release_lookup_returns_missing_only_for_null_release(self):
+        result = {"data": {"repository": {"release": None}}}
+        with patch.object(release.subprocess, "check_output", return_value=json.dumps(result)):
+            with patch.object(self.github, "get") as get:
+                self.assertIsNone(self.github.release(TAG))
+        get.assert_not_called()
+
+    def test_graphql_errors_are_not_treated_as_missing(self):
+        for result in [{"errors": [{"message": "Access denied"}]},
+                       {"data": {"repository": None}}]:
+            with self.subTest(result=result):
+                with patch.object(release.subprocess, "check_output", return_value=json.dumps(result)):
+                    with self.assertRaises(release.ReleaseError):
+                        self.github.release(TAG)
+
+    def test_failed_graphql_request_is_not_treated_as_missing(self):
+        error = subprocess.CalledProcessError(1, ["gh", "api", "graphql"])
+        with patch.object(release.subprocess, "check_output", side_effect=error):
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.github.release(TAG)
 
     def test_lightweight_and_annotated_tags_resolve_to_commits(self):
         commit = {"object": {"type": "commit", "sha": ORIGINAL}}
